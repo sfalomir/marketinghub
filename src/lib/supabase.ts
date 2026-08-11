@@ -5,9 +5,7 @@ const supabaseUrl = requireSupabaseUrl();
 const supabaseAnonKey = getSupabaseAnonKey();
 
 if (!supabaseAnonKey) {
-  throw new Error(
-    "Falta VITE_SUPABASE_ANON_KEY. En Render agrégala en Environment (sin comillas) y vuelve a hacer Deploy.",
-  );
+  throw new Error("Falta VITE_SUPABASE_ANON_KEY.");
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

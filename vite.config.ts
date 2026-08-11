@@ -16,6 +16,16 @@ function cleanEnv(value: string | undefined): string {
   return trimmed;
 }
 
+function asHttpUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return value;
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -32,8 +42,8 @@ export default defineConfig({
         config(_, { mode }) {
           const env = loadEnv(mode, process.cwd(), "");
           const url =
-            cleanEnv(process.env.VITE_SUPABASE_URL) ||
-            cleanEnv(env.VITE_SUPABASE_URL) ||
+            asHttpUrl(cleanEnv(process.env.VITE_SUPABASE_URL)) ||
+            asHttpUrl(cleanEnv(env.VITE_SUPABASE_URL)) ||
             FALLBACK_URL;
           const anonKey =
             cleanEnv(process.env.VITE_SUPABASE_ANON_KEY) ||

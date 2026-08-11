@@ -16,37 +16,39 @@ function fromProcess(key: string): string {
   }
 }
 
+function asHttpUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return value;
+  } catch {
+    /* ignore invalid values from host env */
+  }
+  return "";
+}
+
+function asAnonKey(value: string): string {
+  if (value.startsWith("sb_publishable_") || value.startsWith("eyJ")) return value;
+  return "";
+}
+
 export function getSupabaseUrl(): string {
   return (
-    fromProcess("VITE_SUPABASE_URL") ||
-    fromProcess("SUPABASE_URL") ||
-    clean(import.meta.env.VITE_SUPABASE_URL) ||
+    asHttpUrl(fromProcess("VITE_SUPABASE_URL")) ||
+    asHttpUrl(fromProcess("SUPABASE_URL")) ||
+    asHttpUrl(clean(import.meta.env.VITE_SUPABASE_URL)) ||
     FALLBACK_URL
   );
 }
 
 export function getSupabaseAnonKey(): string {
   return (
-    fromProcess("VITE_SUPABASE_ANON_KEY") ||
-    fromProcess("SUPABASE_ANON_KEY") ||
-    clean(import.meta.env.VITE_SUPABASE_ANON_KEY) ||
+    asAnonKey(fromProcess("VITE_SUPABASE_ANON_KEY")) ||
+    asAnonKey(fromProcess("SUPABASE_ANON_KEY")) ||
+    asAnonKey(clean(import.meta.env.VITE_SUPABASE_ANON_KEY)) ||
     FALLBACK_ANON_KEY
   );
 }
 
 export function requireSupabaseUrl(): string {
-  const url = getSupabaseUrl();
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error("protocol");
-    }
-  } catch {
-    throw new Error(
-      `VITE_SUPABASE_URL no es una URL válida ("${url}"). Usa el formato https://xxxx.supabase.co`,
-    );
-  }
-
-  return url;
+  return getSupabaseUrl();
 }
