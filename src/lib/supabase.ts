@@ -1,11 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAnonKey, requireSupabaseUrl } from "./supabase-env";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = requireSupabaseUrl();
+const supabaseAnonKey = getSupabaseAnonKey();
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseAnonKey) {
   throw new Error(
-    'Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.'
+    "Falta VITE_SUPABASE_ANON_KEY. En Render agrégala en Environment (sin comillas) y vuelve a hacer Deploy.",
   );
 }
 

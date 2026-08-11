@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { requireSupabaseUrl } from "./supabase-env";
 import type { Database } from "./supabase-types";
 
 function readLocalEnv(key: string): string | undefined {
@@ -13,7 +14,7 @@ function readLocalEnv(key: string): string | undefined {
       const eq = trimmed.indexOf("=");
       if (eq === -1) continue;
       if (trimmed.slice(0, eq).trim() === key) {
-        return trimmed.slice(eq + 1).trim();
+        return trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
       }
     }
   } catch {
@@ -22,19 +23,15 @@ function readLocalEnv(key: string): string | undefined {
   return undefined;
 }
 
-export function getSupabaseAdmin(): SupabaseClient<Database> {
-  const url =
-    readLocalEnv("VITE_SUPABASE_URL") ??
-    (import.meta.env.VITE_SUPABASE_URL as string | undefined);
-  const serviceKey = readLocalEnv("SUPABASE_SERVICE_ROLE_KEY");
+export function getServiceRoleKey(): string | undefined {
+  return readLocalEnv("SUPABASE_SERVICE_ROLE_KEY");
+}
 
-  if (!url || !serviceKey) {
-    throw new Error(
-      "Falta SUPABASE_SERVICE_ROLE_KEY. Agrégala en .env (sin prefijo VITE_) para operaciones de servidor.",
-    );
-  }
+export function getSupabaseAdmin(): SupabaseClient<Database> | null {
+  const serviceKey = getServiceRoleKey();
+  if (!serviceKey) return null;
 
-  return createClient<Database>(url, serviceKey, {
+  return createClient<Database>(requireSupabaseUrl(), serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

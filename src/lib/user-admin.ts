@@ -60,6 +60,7 @@ export const updateUserFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true; user: User } | { ok: false; error: string }> => {
     const { getSupabaseAdmin } = await import("@/lib/supabase-admin.server");
     const admin = getSupabaseAdmin();
+    if (!admin) return { ok: false, error: "Falta SUPABASE_SERVICE_ROLE_KEY en el servidor." };
     const { id, ...fields } = data;
 
     const { data: updated, error } = await admin
@@ -88,6 +89,7 @@ export const deleteUserFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string }> => {
     const { getSupabaseAdmin } = await import("@/lib/supabase-admin.server");
     const admin = getSupabaseAdmin();
+    if (!admin) return { ok: false, error: "Falta SUPABASE_SERVICE_ROLE_KEY en el servidor." };
 
     const { error: tableError } = await admin.from("users").delete().eq("id", data.id);
     if (tableError) return { ok: false, error: tableError.message };

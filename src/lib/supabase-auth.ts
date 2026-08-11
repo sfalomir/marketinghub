@@ -43,34 +43,50 @@ export async function createUser(input: {
   status?: "Activo" | "Inactivo" | "Suspendido";
   avatar_url?: string;
 }): Promise<PublicUser> {
+  const email = input.email.trim().toLowerCase();
+  const role = input.role ?? "Colaborador";
+  const metadata = {
+    name: input.name.trim(),
+    last_name: input.last_name?.trim() ?? "",
+    role,
+  };
+
   const { getSupabaseAdmin } = await import("./supabase-admin.server");
   const admin = getSupabaseAdmin();
 
-  const email = input.email.trim().toLowerCase();
-  const role = input.role ?? "Colaborador";
+  let userId: string;
 
-  const { data: authData, error: authError } = await admin.auth.admin.createUser({
-    email,
-    password: input.password,
-    email_confirm: true,
-    user_metadata: {
-      name: input.name.trim(),
-      last_name: input.last_name?.trim() ?? "",
-      role,
-    },
-  });
+  if (admin) {
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
 
-  if (authError) {
-    if (isEmailTaken(authError.message)) throw new Error("EMAIL_TAKEN");
-    throw authError;
-  }
+    if (authError) {
+      if (isEmailTaken(authError.message)) throw new Error("EMAIL_TAKEN");
+      throw authError;
+    }
+    if (!authData.user) throw new Error("No se pudo crear el usuario en Auth.");
+    userId = authData.user.id;
+  } else {
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: input.password,
+      options: { data: metadata },
+    });
 
-  if (!authData.user) {
-    throw new Error("No se pudo crear el usuario en Auth.");
+    if (authError) {
+      if (isEmailTaken(authError.message)) throw new Error("EMAIL_TAKEN");
+      throw authError;
+    }
+    if (!authData.user) throw new Error("No se pudo crear el usuario en Auth.");
+    userId = authData.user.id;
   }
 
   const userData: UserInsert = {
-    id: authData.user.id,
+    id: userId,
     name: input.name.trim(),
     last_name: input.last_name?.trim() ?? "",
     email,
@@ -82,17 +98,19 @@ export async function createUser(input: {
     avatar_url: input.avatar_url?.trim() ?? "",
   };
 
-  const { data: user, error: userError } = await admin
+  const db = admin ?? supabase;
+  const { data: user, error: userError } = await db
     .from("users")
     .upsert(userData, { onConflict: "id" })
     .select()
     .single();
 
-  if (userError) {
-    throw new Error(userError.message);
-  }
+  if (!userError && user) return user;
 
-  return user;
+  const existing = await findUserByEmail(email);
+  if (existing) return existing;
+
+  throw new Error(userError?.message ?? "No se pudo guardar el perfil del usuario.");
 }
 
 export async function verifyPassword(email: string, password: string): Promise<boolean> {
