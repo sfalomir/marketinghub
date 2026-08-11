@@ -14,6 +14,11 @@ function isEmailTaken(message: string) {
   );
 }
 
+function isInvalidApiKey(message: string) {
+  const lower = message.toLowerCase();
+  return lower.includes("invalid api key") || lower.includes("unauthorized");
+}
+
 export async function findUserByEmail(email: string): Promise<User | null> {
   const { data, error } = await supabase
     .from("users")
@@ -52,9 +57,9 @@ export async function createUser(input: {
   };
 
   const { getSupabaseAdmin } = await import("./supabase-admin.server");
-  const admin = getSupabaseAdmin();
+  let admin = getSupabaseAdmin();
 
-  let userId: string;
+  let userId: string | undefined;
 
   if (admin) {
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
@@ -66,11 +71,14 @@ export async function createUser(input: {
 
     if (authError) {
       if (isEmailTaken(authError.message)) throw new Error("EMAIL_TAKEN");
-      throw authError;
+      if (!isInvalidApiKey(authError.message)) throw authError;
+      admin = null;
+    } else if (authData.user) {
+      userId = authData.user.id;
     }
-    if (!authData.user) throw new Error("No se pudo crear el usuario en Auth.");
-    userId = authData.user.id;
-  } else {
+  }
+
+  if (!userId) {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: input.password,

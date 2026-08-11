@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { requireSupabaseUrl } from "./supabase-env";
+import { asServiceRoleKey, requireSupabaseUrl } from "./supabase-env";
 import type { Database } from "./supabase-types";
 
 function readLocalEnv(key: string): string | undefined {
@@ -24,7 +24,7 @@ function readLocalEnv(key: string): string | undefined {
 }
 
 export function getServiceRoleKey(): string | undefined {
-  return readLocalEnv("SUPABASE_SERVICE_ROLE_KEY");
+  return asServiceRoleKey(readLocalEnv("SUPABASE_SERVICE_ROLE_KEY"));
 }
 
 export function getSupabaseAdmin(): SupabaseClient<Database> | null {
