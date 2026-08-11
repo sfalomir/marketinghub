@@ -71,5 +71,24 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+CREATE OR REPLACE FUNCTION public.auto_confirm_auth_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.email_confirmed_at := COALESCE(NEW.email_confirmed_at, now());
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_auto_confirm ON auth.users;
+CREATE TRIGGER on_auth_user_auto_confirm
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.auto_confirm_auth_user();
+
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM public, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.handle_new_user() TO postgres, service_role;
+REVOKE ALL ON FUNCTION public.auto_confirm_auth_user() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.auto_confirm_auth_user() TO postgres, supabase_auth_admin, service_role;
