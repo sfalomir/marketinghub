@@ -32,6 +32,9 @@ export type Channel = (typeof CHANNELS)[number];
 
 export const KEY_DATE_TYPES = [
   "Día festivo",
+  "Día tecnológico",
+  "Día cultural",
+  "Mujeres",
   "Fecha comercial",
   "Aniversario",
   "Cumpleaños",
@@ -41,6 +44,7 @@ export const KEY_DATE_TYPES = [
   "Campaña",
 ] as const;
 export type KeyDateType = (typeof KEY_DATE_TYPES)[number];
+export type ObservanceScope = "México" | "Internacional";
 
 export type Role = "Administrador" | "Marketing" | "Colaborador";
 
@@ -111,6 +115,8 @@ export interface KeyDate {
   owner: string;
   campaignId: string | null;
   notes: string;
+  builtin?: boolean;
+  scope?: ObservanceScope;
 }
 
 export interface MhData {

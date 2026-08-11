@@ -14,6 +14,7 @@ import { AppShell } from "@/components/mh/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useMh } from "@/lib/mh-store";
+import { mergeKeyDates } from "@/lib/mh-observances";
 import { channelClass, daysUntil, priorityClass, relativeLabel } from "@/lib/mh-utils";
 
 export const Route = createFileRoute("/")({
@@ -43,7 +44,8 @@ function Dashboard() {
     const overdue = open.filter((t) => daysUntil(t.dueDate) < 0);
     const todayTasks = open.filter((t) => daysUntil(t.dueDate) === 0);
     const week = open.filter((t) => daysUntil(t.dueDate) > 0 && daysUntil(t.dueDate) <= 7);
-    const upcomingDates = data.keyDates
+    const allDates = mergeKeyDates(data.keyDates);
+    const upcomingDates = allDates
       .filter((k) => daysUntil(k.date) >= 0)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(0, 5);
@@ -93,8 +95,9 @@ function Dashboard() {
       tone: "warn" as const,
       text: `Contenido pendiente de aprobación: ${p.title} (${p.channel})`,
     })),
-    ...data.keyDates
+    ...mergeKeyDates(data.keyDates)
       .filter((k) => daysUntil(k.date) >= 0 && daysUntil(k.date) <= k.leadDays)
+      .slice(0, 6)
       .map((k) => ({
         id: `k-${k.id}`,
         tone: "warn" as const,

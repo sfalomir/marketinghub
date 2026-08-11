@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { newId, useMh } from "@/lib/mh-store";
+import { mergeKeyDates } from "@/lib/mh-observances";
 import { KEY_DATE_TYPES, type KeyDate } from "@/lib/mh-types";
 import { daysUntil, relativeLabel } from "@/lib/mh-utils";
 
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/fechas")({
       {
         name: "description",
         content:
-          "Agenda de días festivos, fechas comerciales, aniversarios y lanzamientos con recordatorios anticipados.",
+          "Agenda de días festivos, tecnológicos, culturales, fechas de mujeres y campañas con recordatorios.",
       },
       { property: "og:title", content: "Fechas importantes | Marketing Hub" },
       {
@@ -65,12 +66,19 @@ function emptyKeyDate(): KeyDate {
 function FechasPage() {
   const { data, upsertKeyDate, removeKeyDate } = useMh();
   const [editing, setEditing] = useState<KeyDate | null>(null);
-  const [f, setF] = useState({ type: ALL, owner: ALL });
+  const [f, setF] = useState({ type: ALL, owner: ALL, scope: ALL });
 
   const list = useMemo(
     () =>
-      data.keyDates
-        .filter((k) => (f.type === ALL || k.type === f.type) && (f.owner === ALL || k.owner === f.owner))
+      mergeKeyDates(data.keyDates)
+        .filter(
+          (k) =>
+            (f.type === ALL || k.type === f.type) &&
+            (f.owner === ALL || k.owner === f.owner) &&
+            (f.scope === ALL || k.scope === f.scope) &&
+            daysUntil(k.date) >= -30 &&
+            daysUntil(k.date) <= 400,
+        )
         .sort((a, b) => a.date.localeCompare(b.date)),
     [data.keyDates, f],
   );
@@ -78,19 +86,25 @@ function FechasPage() {
   return (
     <AppShell
       title="Fechas importantes"
-      subtitle="El sistema te avisa cuando debes comenzar a preparar cada fecha."
+      subtitle="Festivos, días tecnológicos, culturales y fechas de mujeres, en México y el mundo."
       actions={
         <Button size="sm" onClick={() => setEditing(emptyKeyDate())}>
           <Plus className="mr-1 h-4 w-4" /> Nueva fecha
         </Button>
       }
     >
-      <div className="mb-5 grid gap-2 sm:grid-cols-2">
+      <div className="mb-5 grid gap-2 sm:grid-cols-3">
         <FilterSelect
           label="Tipo"
           value={f.type}
           onChange={(v) => setF({ ...f, type: v })}
           options={[...KEY_DATE_TYPES]}
+        />
+        <FilterSelect
+          label="Alcance"
+          value={f.scope}
+          onChange={(v) => setF({ ...f, scope: v })}
+          options={["México", "Internacional"]}
         />
         <FilterSelect
           label="Responsable"
@@ -114,7 +128,14 @@ function FechasPage() {
             >
               <div className="flex items-start justify-between gap-2">
                 <h3 className="min-w-0 text-base font-semibold leading-snug">{k.name}</h3>
-                <Badge variant="outline">{k.type}</Badge>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <Badge variant="outline">{k.type}</Badge>
+                  {k.scope && (
+                    <Badge variant="outline" className="text-[10px]">
+                      {k.scope}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <p className="mt-1 text-sm capitalize text-muted-foreground">
                 {format(parseISO(k.date), "EEEE d 'de' MMMM", { locale: es })} · {relativeLabel(k.date)}
@@ -137,12 +158,15 @@ function FechasPage() {
           {editing && (
             <>
               <DialogHeader>
-                <DialogTitle>{editing.name ? "Editar fecha" : "Nueva fecha"}</DialogTitle>
+                <DialogTitle>
+                  {editing.builtin ? "Fecha del catálogo" : editing.name ? "Editar fecha" : "Nueva fecha"}
+                </DialogTitle>
               </DialogHeader>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field className="sm:col-span-2" label="Nombre">
                   <Input
                     value={editing.name}
+                    disabled={editing.builtin}
                     onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                   />
                 </Field>
@@ -150,6 +174,7 @@ function FechasPage() {
                   <Input
                     type="date"
                     value={editing.date}
+                    disabled={editing.builtin}
                     onChange={(e) => setEditing({ ...editing, date: e.target.value })}
                   />
                 </Field>
@@ -232,24 +257,32 @@ function FechasPage() {
                 </Field>
               </div>
               <DialogFooter className="gap-2 sm:justify-between">
-                <Button
-                  variant="ghost"
-                  className="text-destructive"
-                  onClick={() => {
-                    removeKeyDate(editing.id);
-                    setEditing(null);
-                  }}
-                >
-                  <Trash2 className="mr-1 h-4 w-4" /> Eliminar
-                </Button>
+                {!editing.builtin ? (
+                  <Button
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => {
+                      removeKeyDate(editing.id);
+                      setEditing(null);
+                    }}
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" /> Eliminar
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Fecha del catálogo. No se puede eliminar.</p>
+                )}
                 <Button
                   onClick={() => {
                     if (!editing.name.trim()) return;
+                    if (editing.builtin) {
+                      setEditing(null);
+                      return;
+                    }
                     upsertKeyDate(editing);
                     setEditing(null);
                   }}
                 >
-                  Guardar
+                  {editing.builtin ? "Cerrar" : "Guardar"}
                 </Button>
               </DialogFooter>
             </>

@@ -1,4 +1,5 @@
-import type { MhData } from "./mh-types";
+import { mergeKeyDates } from "./mh-observances";
+import type { KeyDateType, MhData } from "./mh-types";
 
 export type EventKind =
   | "Publicación"
@@ -7,7 +8,11 @@ export type EventKind =
   | "Fecha importante"
   | "Reunión"
   | "Tarea"
-  | "Lanzamiento";
+  | "Lanzamiento"
+  | "Día festivo"
+  | "Día tecnológico"
+  | "Día cultural"
+  | "Mujeres";
 
 export interface CalEvent {
   id: string;
@@ -16,6 +21,8 @@ export interface CalEvent {
   kind: EventKind;
   detail: string;
   owner: string;
+  scope?: string;
+  builtin?: boolean;
 }
 
 export const kindClass: Record<EventKind, string> = {
@@ -26,7 +33,20 @@ export const kindClass: Record<EventKind, string> = {
   Reunión: "bg-secondary text-secondary-foreground border-border",
   Tarea: "bg-success/12 text-success border-success/30",
   Lanzamiento: "bg-destructive/10 text-destructive border-destructive/30",
+  "Día festivo": "bg-primary/12 text-primary border-primary/30",
+  "Día tecnológico": "bg-info/14 text-info border-info/30",
+  "Día cultural": "bg-success/12 text-success border-success/30",
+  Mujeres: "bg-destructive/12 text-destructive border-destructive/30",
 };
+
+function kindFromDateType(type: KeyDateType): EventKind {
+  if (type === "Evento") return "Evento";
+  if (type === "Lanzamiento") return "Lanzamiento";
+  if (type === "Día festivo" || type === "Día tecnológico" || type === "Día cultural" || type === "Mujeres") {
+    return type;
+  }
+  return "Fecha importante";
+}
 
 export function buildEvents(data: MhData): CalEvent[] {
   const events: CalEvent[] = [];
@@ -69,16 +89,16 @@ export function buildEvents(data: MhData): CalEvent[] {
       owner: c.owner,
     });
   }
-  for (const k of data.keyDates) {
-    const kind: EventKind =
-      k.type === "Evento" ? "Evento" : k.type === "Lanzamiento" ? "Lanzamiento" : "Fecha importante";
+  for (const k of mergeKeyDates(data.keyDates)) {
     events.push({
       id: `key-${k.id}`,
       title: k.name,
       date: k.date,
-      kind,
-      detail: k.description,
+      kind: kindFromDateType(k.type),
+      detail: k.scope ? `${k.scope} · ${k.description}` : k.description,
       owner: k.owner,
+      scope: k.scope,
+      builtin: k.builtin,
     });
   }
   return events.sort((a, b) => a.date.localeCompare(b.date));

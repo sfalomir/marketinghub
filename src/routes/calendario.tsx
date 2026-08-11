@@ -48,6 +48,10 @@ const KINDS = [
   "Campaña",
   "Evento",
   "Fecha importante",
+  "Día festivo",
+  "Día tecnológico",
+  "Día cultural",
+  "Mujeres",
   "Reunión",
   "Tarea",
   "Lanzamiento",
@@ -92,7 +96,7 @@ function CalendarioPage() {
   return (
     <AppShell
       title="Calendario de Marketing"
-      subtitle="Publicaciones, campañas, eventos, tareas y fechas clave en un solo lugar."
+      subtitle="Publicaciones, campañas, festivos, días tecnológicos, culturales y fechas de mujeres."
     >
       <div className="mb-4 grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center">
         <Tabs value={view} onValueChange={(v) => setView(v as typeof view)}>
@@ -145,7 +149,7 @@ function CalendarioPage() {
               return (
                 <div
                   key={day.toISOString()}
-                  className={`min-h-24 border-b border-r border-border p-1.5 ${
+                  className={`min-h-28 border-b border-r border-border p-1.5 ${
                     isSameMonth(day, cursor) ? "" : "bg-surface/60"
                   }`}
                 >
@@ -157,7 +161,7 @@ function CalendarioPage() {
                     {format(day, "d")}
                   </span>
                   <div className="mt-1 space-y-1">
-                    {evs.slice(0, 3).map((e) => (
+                    {evs.slice(0, 4).map((e) => (
                       <button
                         key={e.id}
                         onClick={() => setSelected(e)}
@@ -166,9 +170,9 @@ function CalendarioPage() {
                         {e.title}
                       </button>
                     ))}
-                    {evs.length > 3 && (
+                    {evs.length > 4 && (
                       <span className="px-1 text-[11px] text-muted-foreground">
-                        +{evs.length - 3} más
+                        +{evs.length - 4} más
                       </span>
                     )}
                   </div>
@@ -229,11 +233,12 @@ function CalendarioPage() {
               </p>
               <p className="text-sm">{selected.detail}</p>
               <p className="text-sm text-muted-foreground">
-                Responsable: {selected.owner || "Sin asignar"}
+                Responsable: {selected.owner || (selected.builtin ? "Catálogo" : "Sin asignar")}
               </p>
               <p className="text-xs text-muted-foreground">
-                Edita esta actividad desde su módulo (Tareas, Contenido, Campañas o Fechas
-                importantes).
+                {selected.builtin
+                  ? "Fecha del catálogo de marketing (México e internacional)."
+                  : "Edita esta actividad desde su módulo (Tareas, Contenido, Campañas o Fechas importantes)."}
               </p>
             </>
           )}
